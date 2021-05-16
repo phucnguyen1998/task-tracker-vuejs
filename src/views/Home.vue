@@ -1,0 +1,88 @@
+<template>
+  <AddTask v-if="showAddTask" @add-task="addTask" />
+  <Tasks
+    @delete-task="deleteTask"
+    @toggle-reminder="toggleReminder"
+    :tasks="tasks"
+  />
+</template>
+
+<script>
+import Tasks from "./../components/Tasks";
+import AddTask from "./../components/AddTask";
+
+export default {
+  name: "Home",
+  props: {
+    showAddTask: Boolean,
+  },
+  components: {
+    Tasks,
+    AddTask,
+  },
+  data() {
+    return {
+      tasks: [],
+    };
+  },
+  methods: {
+    async deleteTask(id) {
+      const res = await fetch(`api/tasks/${id}`, {
+        method: "DELETE",
+      });
+      res.status === 200
+        ? (this.tasks = this.tasks.filter((task) => task.id !== id))
+        : alert("Error deleting Task");
+    },
+    async toggleReminder(id) {
+      const taskToToggle = await this.fetchTasksById(id);
+      const updateTask = { ...taskToToggle, reminder: !taskToToggle.reminder };
+
+      const res = await fetch(`api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateTask),
+      });
+
+      const data = await res.json();
+
+      this.tasks = this.tasks.map((task) =>
+        task.id === id ? { ...task, reminder: data.reminder } : task
+      );
+    },
+    async addTask(newTask) {
+      const res = await fetch("api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newTask),
+      });
+
+      const data = await res.json();
+      this.tasks = [...this.tasks, data];
+    },
+    toggleAddTask() {
+      this.showAddTask = !this.showAddTask;
+    },
+    async fetchTasks() {
+      const res = await fetch("api/tasks");
+      const data = await res.json();
+      return data;
+    },
+    async fetchTasksById(id) {
+      const res = await fetch(`api/tasks/${id}`);
+      const data = await res.json();
+      return data;
+    },
+  },
+  async created() {
+    this.tasks = await this.fetchTasks();
+  },
+};
+</script>
+
+<style>
+</style>
